@@ -1,0 +1,67 @@
+---
+- name: Deploy Flask Application
+  hosts: your_remote_hosts
+  become: true
+  vars:
+    app_name: my_flask_app
+    app_repo_url: "https://github.com/your_username/your_flask_app.git"
+    app_install_dir: /var/www/{{ app_name }}
+    app_listen_port: 5000
+
+  tasks:
+    - name: Install required system packages
+      apt:
+        name: 
+          - python3-pip
+          - python3-venv
+          - git
+        state: present
+      become: yes
+      become_user: root
+
+    - name: Clone the Flask application repository
+      git:
+        repo: "{{ app_repo_url }}"
+        dest: "{{ app_install_dir }}"
+        version: main
+      become_user: your_deploy_user
+      when: ansible_user != 'your_deploy_user'  # Skip this task if running as the deploy user
+
+    - name: Set up Python virtual environment
+      command: python3 -m venv "{{ app_install_dir }}/venv"
+      become_user: your_deploy_user
+      when: ansible_user != 'your_deploy_user'
+
+    - name: Install Python dependencies
+      pip:
+        requirements: "{{ app_install_dir }}/requirements.txt"
+        virtualenv: "{{ app_install_dir }}/venv"
+      become_user: your_deploy_user
+      when: ansible_user != 'your_deploy_user'
+
+    - name: Configure Nginx
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/{{ app_name }}
+      notify: Restart Nginx
+
+    - name: Enable the Nginx site
+      file:
+        src: "/etc/nginx/sites-available/{{ app_name }}"
+        dest: "/etc/nginx/sites-enabled/{{ app_name }}"
+        state: link
+      notify: Restart Nginx
+
+    - name: Start the Flask application using Gunicorn
+      command: "{{ app_install_dir }}/venv/bin/gunicorn -b 127.0.0.1:{{ app_listen_port }} wsgi:app"
+      become_user: your_deploy_user
+      async: 300
+      poll: 0
+      ignore_errors: yes
+      register: gunicorn_pid
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
