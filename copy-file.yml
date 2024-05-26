@@ -1,0 +1,17 @@
+---
+- name: Copy Files to Remote Hosts
+  hosts: your_remote_hosts
+  become: true
+  vars:
+    source_file_path: /path/to/local/file.txt
+    destination_folder: /path/to/remote/destination/
+
+  tasks:
+    - name: Copy file to remote hosts
+      copy:
+        src: "{{ source_file_path }}"
+        dest: "{{ destination_folder }}"
+      # Optional: You can set file permissions and ownership if needed.
+      # file_mode: "0644"
+      # owner: your_username
+      # group: your_groupname
