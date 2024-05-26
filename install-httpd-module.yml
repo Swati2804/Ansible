@@ -1,0 +1,14 @@
+ - name: install httpd module
+   hosts: localhost
+   become: yes
+   become_user: root 
+   tasks: 
+    - name: install http module
+	  yum:
+	   name: httpd
+	   state: present
+	   
+	- name: start http service
+      service: 
+        name: httpd
+        state: started 	
