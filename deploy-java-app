@@ -1,0 +1,21 @@
+---
+- name: Deploy JAR File
+  hosts: your_remote_hosts
+  become: true
+  vars:
+    jar_file_path: /path/to/local/app.jar
+    remote_deploy_dir: /path/to/remote/deploy/directory
+    java_opts: "-Xmx512m"
+
+  tasks:
+    - name: Copy the JAR file to the remote host
+      copy:
+        src: "{{ jar_file_path }}"
+        dest: "{{ remote_deploy_dir }}/{{ jar_file_path | basename }}"
+
+    - name: Start the application
+      shell: >
+        nohup java {{ java_opts }} -jar "{{ remote_deploy_dir }}/{{ jar_file_path | basename }}" > "{{ remote_deploy_dir }}/app.log" 2>&1 &
+      async: 0
+      poll: 0
+      become_user: your_app_user
